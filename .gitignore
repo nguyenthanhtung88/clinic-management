@@ -4,3 +4,5 @@ bootstrap/compiled.php
 storage/debugbar
 *.log
 composer.lock
+java
+cache.properties

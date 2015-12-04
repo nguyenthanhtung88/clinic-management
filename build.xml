@@ -1,14 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Laravel 5 Jenkins Testing" default="my-build">
     <!--  By default, we assume all tools to be on the $PATH  -->
-    <property name="toolsdir" value=""/>
+    <!-- <property name="toolsdir" value=""/> -->
     <!--
      Uncomment the following when the tools are in ${basedir}/vendor/bin
     -->
-    <!--
+    
      <property name="toolsdir" value="${basedir}/vendor/bin/"/>
-    -->
-    <target name="my-build" depends="prepare,lint,phpcpd,phpcs" description="My build using lint, phpcs and phpmd"/>
+    
+    <target name="my-build" depends="prepare,composer,phpcpd,phpmd,phpcs" description="My build using lint, phpcs and phpmd"/>
+    
+    <target name="composer" unless="composer.done" description="Install composer require for project">
+        <exec executable="composer" taskname="composer">
+            <arg value="install"/>
+        </exec>
+        <property name="composer.done" value="true"/>
+    </target>
+
+    <target name="phpcpd" unless="phpcpd.done" description="Find duplicate code using PHPCPD and print human readable output. Intended for usage on the command line before committing.">
+        <exec executable="${toolsdir}phpcpd" taskname="phpcpd">
+            <arg path="${basedir}/app"/>
+        </exec>
+        <property name="phpcpd.done" value="true"/>
+    </target>
+
+    <target name="phpcs" unless="phpcs.done" description="Find coding standard violations using PHP_CodeSniffer and print human readable output. Intended for usage on the command line before committing.">
+        <exec executable="${toolsdir}phpcs" taskname="phpcs">
+            <arg value="--standard=PSR2"/>
+            <arg value="--extensions=php"/>
+            <arg value="--ignore=autoload.php"/>
+            <arg path="${basedir}/app"/>
+            <arg path="${basedir}/tests"/>
+        </exec>
+        <property name="phpcs.done" value="true"/>
+    </target>
+
+    <target name="phpmd" unless="phpmd.done" description="Perform project mess detection using PHPMD and print human readable output. Intended for usage on the command line before committing.">
+        <exec executable="${toolsdir}phpmd" taskname="phpmd">
+            <arg path="${basedir}/app"/>
+            <arg value="text"/>
+            <!-- <arg path="${basedir}/build/phpmd.xml"/> -->
+        </exec>
+        <property name="phpmd.done" value="true"/>
+    </target>
+
     <target name="build" depends="prepare,lint,phploc-ci,pdepend,phpmd-ci,phpcs-ci,phpcpd-ci,phpunit,phpdox" description=""/>
     <target name="build-parallel" depends="prepare,lint,tools-parallel,phpunit,phpdox" description=""/>
     <target name="tools-parallel" description="Run tools in parallel">
@@ -37,20 +72,6 @@
         <mkdir dir="${basedir}/build/pdepend"/>
         <mkdir dir="${basedir}/build/phpdox"/>
         <property name="prepare.done" value="true"/>
-    </target>
-    <target name="lint" unless="lint.done" description="Perform syntax check of sourcecode files">
-        <apply executable="php" failonerror="true" taskname="lint">
-            <arg value="-l"/>
-            <fileset dir="${basedir}/app">
-                <include name="**/*.php"/>
-                <modified/>
-            </fileset>
-            <fileset dir="${basedir}/tests">
-                <include name="**/*.php"/>
-                <modified/>
-            </fileset>
-        </apply>
-        <property name="lint.done" value="true"/>
     </target>
     <target name="phploc" unless="phploc.done" description="Measure project size using PHPLOC and print human readable output. Intended for usage on the command line.">
         <exec executable="${toolsdir}phploc" taskname="phploc">
@@ -81,14 +102,7 @@
         </exec>
         <property name="pdepend.done" value="true"/>
     </target>
-    <target name="phpmd" unless="phpmd.done" description="Perform project mess detection using PHPMD and print human readable output. Intended for usage on the command line before committing.">
-        <exec executable="${toolsdir}phpmd" taskname="phpmd">
-            <arg path="${basedir}/app"/>
-            <arg value="text"/>
-            <arg path="${basedir}/build/phpmd.xml"/>
-        </exec>
-        <property name="phpmd.done" value="true"/>
-    </target>
+
     <target name="phpmd-ci" unless="phpmd.done" depends="prepare" description="Perform project mess detection using PHPMD and log result in XML format. Intended for usage within a continuous integration environment.">
         <exec executable="${toolsdir}phpmd" taskname="phpmd">
             <arg path="${basedir}/app"/>
@@ -99,16 +113,7 @@
         </exec>
         <property name="phpmd.done" value="true"/>
     </target>
-    <target name="phpcs" unless="phpcs.done" description="Find coding standard violations using PHP_CodeSniffer and print human readable output. Intended for usage on the command line before committing.">
-        <exec executable="${toolsdir}phpcs" taskname="phpcs">
-            <arg value="--standard=PSR2"/>
-            <arg value="--extensions=php"/>
-            <arg value="--ignore=autoload.php"/>
-            <arg path="${basedir}/app"/>
-            <arg path="${basedir}/tests"/>
-        </exec>
-        <property name="phpcs.done" value="true"/>
-    </target>
+
     <target name="phpcs-ci" unless="phpcs.done" depends="prepare" description="Find coding standard violations using PHP_CodeSniffer and log result in XML format. Intended for usage within a continuous integration environment.">
         <exec executable="${toolsdir}phpcs" output="/dev/null" taskname="phpcs">
             <arg value="--report=checkstyle"/>
@@ -120,12 +125,7 @@
         </exec>
         <property name="phpcs.done" value="true"/>
     </target>
-    <target name="phpcpd" unless="phpcpd.done" description="Find duplicate code using PHPCPD and print human readable output. Intended for usage on the command line before committing.">
-        <exec executable="${toolsdir}phpcpd" taskname="phpcpd">
-            <arg path="${basedir}/app"/>
-        </exec>
-        <property name="phpcpd.done" value="true"/>
-    </target>
+
     <target name="phpcpd-ci" unless="phpcpd.done" depends="prepare" description="Find duplicate code using PHPCPD and log result in XML format. Intended for usage within a continuous integration environment.">
         <exec executable="${toolsdir}phpcpd" taskname="phpcpd">
             <arg value="--log-pmd"/>
@@ -150,5 +150,20 @@
     <target name="phpdox" unless="phpdox.done" depends="phploc-ci,phpcs-ci,phpmd-ci" description="Generate project documentation using phpDox">
         <exec executable="${toolsdir}phpdox" dir="${basedir}/build" taskname="phpdox"/>
         <property name="phpdox.done" value="true"/>
+    </target>
+
+    <target name="lint" unless="lint.done" description="Perform syntax check of sourcecode files">
+        <apply executable="php" failonerror="true" taskname="lint">
+            <arg value="-l"/>
+            <fileset dir="${basedir}/app">
+                <include name="**/*.php"/>
+                <modified/>
+            </fileset>
+            <fileset dir="${basedir}/tests">
+                <include name="**/*.php"/>
+                <modified/>
+            </fileset>
+        </apply>
+        <property name="lint.done" value="true"/>
     </target>
 </project>
