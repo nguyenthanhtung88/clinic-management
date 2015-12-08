@@ -10,11 +10,10 @@
     
     <target name="my-build" depends="prepare,composer,phpcpd,phpmd,phpcs" description="My build using lint, phpcs and phpmd"/>
     
-    <target name="composer" unless="composer.done" description="Install composer require for project">
-        <exec executable="composer" taskname="composer">
-            <arg value="install"/>
+    <target name="composer" description="Install composer dependencies">
+        <exec executable="composer" failonerror="true">
+            <arg value="install" />
         </exec>
-        <property name="composer.done" value="true"/>
     </target>
 
     <target name="phpcpd" unless="phpcpd.done" description="Find duplicate code using PHPCPD and print human readable output. Intended for usage on the command line before committing.">
@@ -39,7 +38,7 @@
         <exec executable="${toolsdir}phpmd" taskname="phpmd">
             <arg path="${basedir}/app"/>
             <arg value="text"/>
-            <!-- <arg path="${basedir}/build/phpmd.xml"/> -->
+            <arg path="${basedir}/build/phpmd.xml"/>
         </exec>
         <property name="phpmd.done" value="true"/>
     </target>
