@@ -15,7 +15,7 @@ class PostsController extends Controller
      */
     public function index()
     {
-        //
+        var_dump(array(1, 2,4, 5,"asfsa"));
     }
 
     /**
